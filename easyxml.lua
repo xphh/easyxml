@@ -22,12 +22,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
 
-local function isarray(t)
-	if t[1] == nil then
-		return false
-	else
-		return true
-	end
+local function table_is_array(t)
+	return type(t) == "table" and t[1] ~= nil
+end
+
+local function table_is_empty(t)
+	return type(t) == "table" and _G.next(t) == nil
 end
 
 local function encode(t, key, level)
@@ -37,7 +37,7 @@ local function encode(t, key, level)
 	level = level or 0
 	local tab = string.rep('\t', level)
 	if type(t) == 'table' then
-		if isarray(t) then
+		if table_is_array(t) then
 			for i = 1, #t do
 				xml = xml..encode(t[i], key, level)
 			end
@@ -69,39 +69,62 @@ end
 
 local function decode_recur(xml)
 	local t = {}
-	local count = 0
 	local isarr = false
 	while true do
 		local _, e, key, val = getnode(xml)
-		if not key then
-			if count == 0 then
-				return xml
-			else
-				break
-			end
-		else
-			if not t[key] then
-				t[key] = decode_recur(val)
-				count = count + 1
-			else
-				if not isarr then
-					t[key] = {t[key], decode_recur(val)}
-					isarr = true
-				else
-					t[key][#t[key] + 1] = decode_recur(val)
-				end
-			end
-			xml = string.sub(xml, e + 1)
+		if key == nil then
+			break
 		end
+		if t[key] == nil then
+			t[key] = decode_recur(val)
+		else
+			if not isarr then
+				t[key] = {t[key], decode_recur(val)}
+				isarr = true
+			else
+				t[key][#t[key] + 1] = decode_recur(val)
+			end
+		end
+		xml = string.sub(xml, e + 1)
+	end
+	if table_is_empty(t) then
+		return xml
 	end
 	return t
 end
 
-local function decode(xml, require_key)
+local function decode_recur_tpl(xml, tpl)
+	if type(tpl) ~= "table" then
+		return xml
+	end
+	local t = {}
+	while true do
+		local _, e, key, val = getnode(xml)
+		if key == nil then
+			break
+		end
+		if tpl[key] ~= nil then
+			if table_is_array(tpl[key]) then
+				t[key] = t[key] or {}
+				t[key][#t[key] + 1] = decode_recur_tpl(val, tpl[key][1])
+			else
+				t[key] = decode_recur_tpl(val, tpl[key])
+			end
+		end
+		xml = string.sub(xml, e + 1)
+	end
+	return t
+end
+
+local function decode(xml, require_key, tpl)
 	require_key = require_key or 'xml'
 	local _, e, key, val = getnode(xml)
 	if key == require_key then
-		return decode_recur(val)
+		if tpl == nil then
+			return decode_recur(val)
+		else
+			return decode_recur_tpl(val, tpl)
+		end
 	end
 end
 

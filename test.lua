@@ -48,3 +48,39 @@ local str = xml.encode(t)
 print(str)
 
 print(xml.encode(xml.decode(str)))
+
+local strxml = [[
+<body>
+	<x3>
+		<z1>111111</z1>
+	</x3>
+	<x1>qqq</x1>
+	<x2>
+		<y1>asd</y1>
+		<y2>222</y2>
+		<y3>333</y3>
+	</x2>
+	<x3>
+		<z1>333333</z1>
+	</x3>
+	<x4>vvvv</x4>
+	<x3>
+		<z1>222222</z1>
+	</x3>
+</body>
+]]
+
+local tpl = {
+	x1 = 1,
+	x2 = {
+		y1 = "aaa",
+		y2 = "bbb",
+	},
+	x3 = {
+		{z1 = 123}
+	},
+}
+
+local t2 = xml.decode(strxml, "body", tpl)
+print(xml.encode(t2))
+
