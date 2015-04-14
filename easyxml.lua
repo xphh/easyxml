@@ -94,8 +94,16 @@ local function decode_recur(xml)
 end
 
 local function decode_recur_tpl(xml, tpl)
-	if type(tpl) ~= "table" then
-		return xml
+	if type(tpl) == "number" then
+		return tonumber(xml)
+	elseif type(tpl) == "string" then
+		if tpl:find('%[int%]') == 1 or tpl:find('%[long%]') == 1 or tpl:find('%[double%]') == 1 then
+			return tonumber(xml)
+		elseif tpl:find('%[bool%]') == 1 then
+			return xml == 'true'
+		else
+			return xml
+		end
 	end
 	local t = {}
 	while true do
